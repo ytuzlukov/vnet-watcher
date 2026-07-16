@@ -18,7 +18,7 @@ public record AppConfig(
 ) {
     private static final String DEFAULT_SITES = String.join(",",
             "https://valut.net",
-            "https://www.instagram.com",
+            "https://service-unavailable.invalid",
             "https://pro.valut.net",
             "https://docs.valut.net",
             "https://app.travel.cards"
