@@ -15,6 +15,7 @@ public final class Main {
             HttpClient httpClient = HttpClient.newBuilder()
                     .connectTimeout(config.connectTimeout())
                     .followRedirects(HttpClient.Redirect.NORMAL)
+                    .version(HttpClient.Version.HTTP_1_1)
                     .build();
 
             SiteChecker checker = new HttpSiteChecker(httpClient, config.requestTimeout());
