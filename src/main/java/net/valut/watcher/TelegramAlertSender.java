@@ -57,7 +57,7 @@ public final class TelegramAlertSender implements AlertSender {
                 "--fail",
                 "--silent",
                 "--show-error",
-                "--ipv4",
+                "--ipv6",
                 "--connect-timeout", Long.toString(Math.max(1, requestTimeout.toSeconds())),
                 "--max-time", Long.toString(Math.max(1, timeoutSeconds))
         ));
