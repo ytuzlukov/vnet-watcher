@@ -32,8 +32,12 @@ public final class TelegramAlertSender implements AlertSender {
 
     @Override
     public void send(Alert alert) throws IOException, InterruptedException {
-        String requestBody = "chat_id=" + encode(chatId)
-                + "&text=" + encode(formatMessage(alert))
+        sendText(chatId, formatMessage(alert));
+    }
+
+    public void sendText(String destinationChatId, String text) throws IOException, InterruptedException {
+        String requestBody = "chat_id=" + encode(destinationChatId)
+                + "&text=" + encode(text)
                 + "&disable_web_page_preview=true";
 
         HttpRequest request = HttpRequest.newBuilder(sendMessageUri)
@@ -46,6 +50,22 @@ public final class TelegramAlertSender implements AlertSender {
         if (response.statusCode() != 200) {
             throw new IOException("Telegram API returned HTTP " + response.statusCode());
         }
+    }
+
+    public String getUpdates(long offset, int timeoutSeconds) throws IOException, InterruptedException {
+        URI updatesUri = URI.create(sendMessageUri.toString().replace("/sendMessage", "/getUpdates")
+                + "?offset=" + offset
+                + "&timeout=" + timeoutSeconds
+                + "&allowed_updates=%5B%22message%22%5D");
+        HttpRequest request = HttpRequest.newBuilder(updatesUri)
+                .timeout(Duration.ofSeconds(timeoutSeconds + 10L))
+                .GET()
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new IOException("Telegram getUpdates returned HTTP " + response.statusCode());
+        }
+        return response.body();
     }
 
     static String formatMessage(Alert alert) {

@@ -34,4 +34,19 @@ class TelegramAlertSenderTest {
         assertEquals("11 минут", TelegramAlertSender.formatDuration(Duration.ofMinutes(11)));
         assertEquals("21 минута", TelegramAlertSender.formatDuration(Duration.ofMinutes(21)));
     }
+
+    @Test
+    void formatsCurrentStatus() {
+        SiteStatus status = new SiteStatus(
+                URI.create("https://app.valut.net"),
+                CheckResult.available(1234),
+                java.time.Instant.parse("2026-07-17T10:15:30Z")
+        );
+
+        String message = StatusMessageFormatter.format(java.util.List.of(status));
+
+        assertTrue(message.contains("app.valut.net"));
+        assertTrue(message.contains("1234 мс"));
+        assertTrue(message.contains("17.07.2026 10:15:30 UTC"));
+    }
 }

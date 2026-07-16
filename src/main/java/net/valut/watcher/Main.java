@@ -18,16 +18,22 @@ public final class Main {
                     .build();
 
             SiteChecker checker = new HttpSiteChecker(httpClient, config.requestTimeout());
-            AlertSender alertSender = new TelegramAlertSender(
+            TelegramAlertSender telegram = new TelegramAlertSender(
                     httpClient,
                     config.telegramBotToken(),
                     config.telegramChatId(),
                     config.requestTimeout()
             );
-            MonitoringService monitoringService = new MonitoringService(config, checker, alertSender);
+            MonitoringService monitoringService = new MonitoringService(config, checker, telegram);
+            TelegramStatusCommandPoller statusPoller = new TelegramStatusCommandPoller(
+                    telegram,
+                    monitoringService,
+                    config.telegramStatusChatId()
+            );
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 LOG.log(System.Logger.Level.INFO, "Stopping vnet-watcher");
+                statusPoller.close();
                 monitoringService.close();
             }, "vnet-watcher-shutdown"));
 
@@ -39,6 +45,7 @@ public final class Main {
                     config.failureThreshold()
             );
             monitoringService.start();
+            statusPoller.start();
             new CountDownLatch(1).await();
         } catch (IllegalArgumentException exception) {
             LOG.log(System.Logger.Level.ERROR, "Configuration error: {0}", exception.getMessage());

@@ -89,6 +89,7 @@ class MonitoringServiceTest {
                 List.of(SITE),
                 "123:test",
                 "-100123",
+                null,
                 Duration.ofMinutes(5),
                 3,
                 Duration.ofSeconds(10),

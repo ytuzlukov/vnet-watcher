@@ -10,6 +10,7 @@ public record AppConfig(
         List<URI> sites,
         String telegramBotToken,
         String telegramChatId,
+        String telegramStatusChatId,
         Duration checkInterval,
         int failureThreshold,
         Duration connectTimeout,
@@ -47,6 +48,7 @@ public record AppConfig(
                 parseSites(environment.getOrDefault("MONITORED_URLS", DEFAULT_SITES)),
                 required(environment, "TELEGRAM_BOT_TOKEN"),
                 required(environment, "TELEGRAM_CHAT_ID"),
+                optional(environment, "TELEGRAM_STATUS_CHAT_ID"),
                 Duration.ofSeconds(positiveLong(environment, "CHECK_INTERVAL_SECONDS", 300)),
                 positiveInteger(environment, "FAILURE_THRESHOLD", 3),
                 Duration.ofSeconds(positiveLong(environment, "CONNECT_TIMEOUT_SECONDS", 10)),
@@ -86,6 +88,11 @@ public record AppConfig(
             throw new IllegalArgumentException(name + " is required");
         }
         return value.trim();
+    }
+
+    private static String optional(Map<String, String> environment, String name) {
+        String value = environment.get(name);
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private static int positiveInteger(Map<String, String> environment, String name, int defaultValue) {
