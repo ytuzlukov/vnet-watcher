@@ -6,8 +6,8 @@ import java.util.List;
 
 final class StatusMessageFormatter {
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter
-            .ofPattern("dd.MM.yyyy HH:mm:ss 'UTC'")
-            .withZone(ZoneOffset.UTC);
+            .ofPattern("dd.MM.yyyy HH:mm:ss 'UTC+3'")
+            .withZone(ZoneOffset.ofHours(3));
 
     private StatusMessageFormatter() {
     }

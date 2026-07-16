@@ -47,6 +47,6 @@ class TelegramAlertSenderTest {
 
         assertTrue(message.contains("app.valut.net"));
         assertTrue(message.contains("1234 мс"));
-        assertTrue(message.contains("17.07.2026 10:15:30 UTC"));
+        assertTrue(message.contains("17.07.2026 13:15:30 UTC+3"));
     }
 }
