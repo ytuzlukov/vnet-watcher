@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Queue;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MonitoringServiceTest {
     private static final URI SITE = URI.create("https://app.valut.net");
@@ -82,6 +84,21 @@ class MonitoringServiceTest {
         assertEquals(2, alerts.sent.size());
         assertEquals(Alert.Type.OUTAGE, alerts.sent.get(0).type());
         assertEquals(Alert.Type.RECOVERY, alerts.sent.get(1).type());
+    }
+
+    @Test
+    void exposesLastCheckInStatusSnapshot() {
+        QueueChecker checker = new QueueChecker(CheckResult.available(321));
+
+        try (MonitoringService service = service(checker, new RecordingAlertSender())) {
+            assertFalse(service.statusSnapshot().getFirst().checked());
+            service.runCheckCycle();
+
+            SiteStatus status = service.statusSnapshot().getFirst();
+            assertTrue(status.checked());
+            assertTrue(status.result().available());
+            assertEquals(321, status.result().elapsedMillis());
+        }
     }
 
     private static MonitoringService service(SiteChecker checker, AlertSender alerts) {

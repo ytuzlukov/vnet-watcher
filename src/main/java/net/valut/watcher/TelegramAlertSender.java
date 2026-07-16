@@ -2,21 +2,17 @@ package net.valut.watcher;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class TelegramAlertSender implements AlertSender {
-    private final HttpClient httpClient;
     private final URI sendMessageUri;
     private final String chatId;
     private final Duration requestTimeout;
 
     public TelegramAlertSender(
-            HttpClient httpClient,
             String botToken,
             String chatId,
             Duration requestTimeout
@@ -24,7 +20,6 @@ public final class TelegramAlertSender implements AlertSender {
         if (!botToken.matches("[0-9]+:[A-Za-z0-9_-]+")) {
             throw new IllegalArgumentException("TELEGRAM_BOT_TOKEN has invalid format");
         }
-        this.httpClient = httpClient;
         this.sendMessageUri = URI.create("https://api.telegram.org/bot" + botToken + "/sendMessage");
         this.chatId = chatId;
         this.requestTimeout = requestTimeout;
@@ -36,36 +31,47 @@ public final class TelegramAlertSender implements AlertSender {
     }
 
     public void sendText(String destinationChatId, String text) throws IOException, InterruptedException {
-        String requestBody = "chat_id=" + encode(destinationChatId)
-                + "&text=" + encode(text)
-                + "&disable_web_page_preview=true";
-
-        HttpRequest request = HttpRequest.newBuilder(sendMessageUri)
-                .timeout(requestTimeout)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            throw new IOException("Telegram API returned HTTP " + response.statusCode());
-        }
+        runCurl(List.of(
+                "--data-urlencode", "chat_id=" + destinationChatId,
+                "--data-urlencode", "text=" + text,
+                "--data-urlencode", "disable_web_page_preview=true",
+                sendMessageUri.toString()
+        ), requestTimeout.toSeconds());
     }
 
     public String getUpdates(long offset, int timeoutSeconds) throws IOException, InterruptedException {
-        URI updatesUri = URI.create(sendMessageUri.toString().replace("/sendMessage", "/getUpdates")
-                + "?offset=" + offset
-                + "&timeout=" + timeoutSeconds
-                + "&allowed_updates=%5B%22message%22%5D");
-        HttpRequest request = HttpRequest.newBuilder(updatesUri)
-                .timeout(Duration.ofSeconds(timeoutSeconds + 10L))
-                .GET()
-                .build();
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != 200) {
-            throw new IOException("Telegram getUpdates returned HTTP " + response.statusCode());
+        String updatesUri = sendMessageUri.toString().replace("/sendMessage", "/getUpdates");
+        return runCurl(List.of(
+                "--get",
+                "--data-urlencode", "offset=" + offset,
+                "--data-urlencode", "timeout=" + timeoutSeconds,
+                "--data-urlencode", "allowed_updates=[\"message\"]",
+                updatesUri
+        ), timeoutSeconds + 10L);
+    }
+
+    private String runCurl(List<String> requestArguments, long timeoutSeconds)
+            throws IOException, InterruptedException {
+        List<String> command = new ArrayList<>(List.of(
+                "curl",
+                "--fail",
+                "--silent",
+                "--show-error",
+                "--ipv4",
+                "--connect-timeout", Long.toString(Math.max(1, requestTimeout.toSeconds())),
+                "--max-time", Long.toString(Math.max(1, timeoutSeconds))
+        ));
+        command.addAll(requestArguments);
+
+        Process process = new ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new IOException("curl Telegram request failed (exit " + exitCode + "): " + output.trim());
         }
-        return response.body();
+        return output;
     }
 
     static String formatMessage(Alert alert) {
@@ -106,7 +112,4 @@ public final class TelegramAlertSender implements AlertSender {
         };
     }
 
-    private static String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
-    }
 }

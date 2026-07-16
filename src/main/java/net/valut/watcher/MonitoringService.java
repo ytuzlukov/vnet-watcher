@@ -49,7 +49,10 @@ public final class MonitoringService implements AutoCloseable {
         List<SiteStatus> snapshot = new ArrayList<>();
         for (Map.Entry<URI, SiteState> entry : states.entrySet()) {
             SiteState state = entry.getValue();
-            snapshot.add(new SiteStatus(entry.getKey(), state.lastResult, state.lastCheckedAt));
+            SiteStatus lastStatus = state.lastStatus;
+            snapshot.add(lastStatus == null
+                    ? new SiteStatus(entry.getKey(), null, null)
+                    : lastStatus);
         }
         return List.copyOf(snapshot);
     }
@@ -94,8 +97,7 @@ public final class MonitoringService implements AutoCloseable {
 
     private void processResult(URI site, CheckResult result) {
         SiteState state = states.get(site);
-        state.lastResult = result;
-        state.lastCheckedAt = Instant.now();
+        state.lastStatus = new SiteStatus(site, result, Instant.now());
         if (result.available()) {
             LOG.log(
                     System.Logger.Level.INFO,
@@ -186,8 +188,7 @@ public final class MonitoringService implements AutoCloseable {
         private int consecutiveFailures;
         private boolean outageAlertSent;
         private String lastFailureReason;
-        private volatile CheckResult lastResult;
-        private volatile Instant lastCheckedAt;
+        private volatile SiteStatus lastStatus;
 
         private void reset() {
             consecutiveFailures = 0;

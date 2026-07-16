@@ -8,7 +8,9 @@ COPY src ./src
 RUN mvn --batch-mode clean package
 
 FROM eclipse-temurin:21-jre-alpine
-RUN addgroup -S watcher && adduser -S watcher -G watcher
+RUN apk add --no-cache curl \
+    && addgroup -S watcher \
+    && adduser -S watcher -G watcher
 WORKDIR /app
 
 COPY --from=build /build/target/vnet-watcher.jar /app/vnet-watcher.jar

@@ -74,7 +74,7 @@ public final class TelegramStatusCommandPoller implements AutoCloseable {
             Thread.currentThread().interrupt();
         } catch (IOException | RuntimeException exception) {
             LOG.log(System.Logger.Level.WARNING,
-                    "Could not discard old Telegram updates; an old /status message may receive a response");
+                    "Could not discard old Telegram updates: {0}", exception.getMessage());
         }
     }
 
@@ -121,23 +121,20 @@ public final class TelegramStatusCommandPoller implements AutoCloseable {
 
             for (String updateJson : topLevelObjects(result)) {
                 OptionalLong updateId = findLongValue(updateJson, "update_id");
-                String message = findObjectValue(updateJson, "message");
-                if (updateId.isEmpty() || message == null) {
+                if (updateId.isEmpty()) {
                     continue;
                 }
 
-                String chat = findObjectValue(message, "chat");
+                String message = findObjectValue(updateJson, "message");
+                String chat = message == null ? null : findObjectValue(message, "chat");
                 OptionalLong chatId = chat == null ? OptionalLong.empty() : findLongValue(chat, "id");
                 String chatType = chat == null ? null : findStringValue(chat, "type");
-                if (chatId.isEmpty() || chatType == null) {
-                    continue;
-                }
 
                 updates.add(new TelegramUpdate(
                         updateId.getAsLong(),
-                        Long.toString(chatId.getAsLong()),
+                        chatId.isPresent() ? Long.toString(chatId.getAsLong()) : null,
                         chatType,
-                        findStringValue(message, "text")
+                        message == null ? null : findStringValue(message, "text")
                 ));
             }
             return updates;

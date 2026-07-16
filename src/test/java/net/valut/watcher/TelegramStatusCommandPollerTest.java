@@ -24,4 +24,22 @@ class TelegramStatusCommandPollerTest {
         assertEquals("private", updates.getFirst().chatType());
         assertTrue(updates.getFirst().isStatusCommand());
     }
+
+    @Test
+    void keepsUpdateIdsForUnsupportedUpdatesSoPollingCanAdvance() {
+        String response = """
+                {"ok":true,"result":[
+                  {"update_id":41,"channel_post":{"message_id":1,"chat":{"id":-100123,"type":"channel"}}},
+                  {"update_id":42,"message":{"message_id":2,"chat":{"id":123456,"type":"private"},"text":"/status"}}
+                ]}
+                """;
+
+        List<TelegramStatusCommandPoller.TelegramUpdate> updates =
+                TelegramStatusCommandPoller.TelegramUpdateParser.parse(response);
+
+        assertEquals(2, updates.size());
+        assertEquals(41, updates.get(0).id());
+        assertEquals(42, updates.get(1).id());
+        assertTrue(updates.get(1).isStatusCommand());
+    }
 }

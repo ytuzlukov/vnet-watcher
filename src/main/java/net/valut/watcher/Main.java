@@ -20,7 +20,6 @@ public final class Main {
 
             SiteChecker checker = new HttpSiteChecker(httpClient, config.requestTimeout());
             TelegramAlertSender telegram = new TelegramAlertSender(
-                    httpClient,
                     config.telegramBotToken(),
                     config.telegramChatId(),
                     config.requestTimeout()
