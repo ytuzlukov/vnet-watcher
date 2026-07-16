@@ -14,4 +14,4 @@ WORKDIR /app
 COPY --from=build /build/target/vnet-watcher.jar /app/vnet-watcher.jar
 
 USER watcher
-ENTRYPOINT ["java", "-jar", "/app/vnet-watcher.jar"]
+ENTRYPOINT ["java", "-Djava.net.preferIPv4Stack=true", "-jar", "/app/vnet-watcher.jar"]
